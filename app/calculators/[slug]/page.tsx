@@ -8,12 +8,15 @@ import {
   calculatorTitle,
   calculatorDescription,
   calculatorDirectAnswer,
+  calculatorKeyFacts,
   breadcrumbJsonLd,
+  canonicalUrl,
   pageMetadata,
 } from '@/lib/seo';
 import CalculatorTool from '@/components/CalculatorTool';
 import SuvatTool from '@/components/SuvatTool';
 import MultiSolveTool, { densityConfig, pressureConfig } from '@/components/MultiSolveTool';
+import ShareButtons from '@/components/ShareButtons';
 
 export function generateStaticParams() {
   return calculators.map((c) => ({ slug: c.slug }));
@@ -56,9 +59,15 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const description = calculatorDescription(c, content);
   const hub = topicForCalculator(c.category);
   const sameCategory = calculators.filter((x) => x.category === c.category && x.slug !== slug);
-  const relatedCalculators = content?.relatedGuide
-    ? sameCategory.slice(0, 2)
-    : sameCategory.slice(0, 3);
+  const relatedCalculators = sameCategory.slice(0, 3);
+  const categoryOrder = calculators.filter((x) => x.category === c.category);
+  const indexInCategory = categoryOrder.findIndex((x) => x.slug === slug);
+  const prevCalculator = indexInCategory > 0 ? categoryOrder[indexInCategory - 1] : undefined;
+  const nextCalculator =
+    indexInCategory >= 0 && indexInCategory < categoryOrder.length - 1
+      ? categoryOrder[indexInCategory + 1]
+      : undefined;
+  const keyFacts = calculatorKeyFacts(spec, content);
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -97,6 +106,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <p className="eyebrow">{c.category}</p>
       <h1>{c.name} calculator</h1>
       <p className="lead">{description}</p>
+      <ShareButtons url={canonicalUrl(`/calculators/${slug}`)} title={calculatorTitle(c, content)} />
       {slug === 'suvat' ? (
         <SuvatTool />
       ) : slug === 'density' ? (
@@ -104,7 +114,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       ) : slug === 'pressure' ? (
         <MultiSolveTool config={pressureConfig} />
       ) : (
-        <CalculatorTool calculator={c} />
+        // Pass the unique description (not the registry template sentence) so
+        // the template text is not serialized into the page's RSC payload.
+        <CalculatorTool calculator={{ ...c, description }} />
       )}
       <section className="prose">
         <h2>Equation and method</h2>
@@ -113,6 +125,16 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <strong>{spec.formula}</strong>
         </p>
         <p>{spec.note}</p>
+        <div className="key-facts" aria-label="Key facts">
+          <h2>Key facts</h2>
+          <ul>
+            {keyFacts.map((f) => (
+              <li key={f.label}>
+                <strong>{f.label}:</strong> {f.text}
+              </li>
+            ))}
+          </ul>
+        </div>
         <h2>Input variables</h2>
         <ul>
           {spec.labels.map((x) => (
@@ -152,6 +174,14 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             <p>{f.a}</p>
           </div>
         ))}
+        <h2>Related calculators</h2>
+        <ul>
+          {relatedCalculators.map((r) => (
+            <li key={r.slug}>
+              <Link href={`/calculators/${r.slug}`}>Try the {r.name} calculator</Link>
+            </li>
+          ))}
+        </ul>
         <h2>Related pages</h2>
         <ul>
           {hub && (
@@ -164,13 +194,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
               <Link href={`/guides/${content.relatedGuide.slug}`}>Read the {content.relatedGuide.title} guide</Link>
             </li>
           )}
-          {relatedCalculators.map((r) => (
-            <li key={r.slug}>
-              <Link href={`/calculators/${r.slug}`}>Try the {r.name} calculator</Link>
-            </li>
-          ))}
         </ul>
       </section>
+      <nav className="prev-next" aria-label="More calculators in this category">
+        {prevCalculator ? (
+          <Link href={`/calculators/${prevCalculator.slug}`}>← {prevCalculator.name} calculator</Link>
+        ) : (
+          <span />
+        )}
+        {nextCalculator ? (
+          <Link href={`/calculators/${nextCalculator.slug}`}>{nextCalculator.name} calculator →</Link>
+        ) : (
+          <span />
+        )}
+      </nav>
     </main>
   );
 }

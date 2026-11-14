@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { calculators, categories } from '@/lib/calculators';
+import { calculatorContent } from '@/lib/calculator-content';
 import { topics } from '@/lib/topics';
-import { LIST_META, pageMetadata } from '@/lib/seo';
+import { LIST_META, calculatorDescription, pageMetadata } from '@/lib/seo';
 
 export const metadata = pageMetadata({
   title: LIST_META.calculators.title,
@@ -34,7 +35,7 @@ export default function Page() {
                 .map((c) => (
                   <Link className="tool-card" href={`/calculators/${c.slug}`} key={c.slug}>
                     <b>{c.name} calculator</b>
-                    <p>{c.description}</p>
+                    <p>{calculatorDescription(c, calculatorContent[c.slug])}</p>
                     <span>Open tool →</span>
                   </Link>
                 ))}

@@ -30,8 +30,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...guides.map((x) => `/guides/${x.slug}`),
   ];
   // /search is deliberately NOT in the sitemap: it is noindex (see app/search/page.tsx).
+  // Pages changed by the 14 Nov 2026 enhancement round (share buttons, key
+  // facts, TOC, HowTo, hub top picks, unique card descriptions) carry that
+  // date; untouched pages keep their earlier lastmod.
+  const changed = (path: string) =>
+    path === '' ||
+    path === '/calculators' ||
+    path.startsWith('/calculators/') ||
+    path.startsWith('/guides/') ||
+    path.startsWith('/topics/');
   const lastModified = (path: string) =>
-    path.startsWith('/topics') ? new Date('2026-11-13') : new Date('2026-11-10');
+    changed(path)
+      ? new Date('2026-11-14')
+      : path.startsWith('/topics')
+        ? new Date('2026-11-13')
+        : new Date('2026-11-10');
   return paths.map((path) => ({
     url: new URL(path, base).toString(),
     lastModified: lastModified(path),

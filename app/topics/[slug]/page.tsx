@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { topics, getTopic, calculatorsForTopic, guidesForTopic, convertersForTopic, simulationsForTopic, topicTitle, topicDescription } from '@/lib/topics';
-import { breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
+import { topics, getTopic, calculatorsForTopic, guidesForTopic, convertersForTopic, simulationsForTopic, hubTopPicks, topicTitle, topicDescription } from '@/lib/topics';
+import { calculators } from '@/lib/calculators';
+import { calculatorContent } from '@/lib/calculator-content';
+import { breadcrumbJsonLd, calculatorDescription, canonicalUrl, pageMetadata } from '@/lib/seo';
 
 export function generateStaticParams() {
   return topics.map((t) => ({ slug: t.slug }));
@@ -23,6 +25,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const converters = convertersForTopic(slug);
   const simulations = simulationsForTopic(slug);
   const otherTopics = topics.filter((t) => t.slug !== slug);
+  const topPicks = (hubTopPicks[slug] ?? [])
+    .map((pick) => ({ ...pick, calc: calculators.find((c) => c.slug === pick.slug) }))
+    .filter((pick): pick is { slug: string; reason: string; calc: (typeof calculators)[number] } => Boolean(pick.calc));
+  const itemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${topic.name} calculators`,
+    itemListElement: calculators.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: `${c.name} calculator`,
+      url: canonicalUrl(`/calculators/${c.slug}`),
+    })),
+  };
   const breadcrumb = breadcrumbJsonLd([
     { name: 'Home', url: '/' },
     { name: 'Topics', url: '/topics' },
@@ -31,6 +47,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   return (
     <main className="container page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
       <p className="breadcrumb">
         <Link href="/">Home</Link> / <Link href="/topics">Topics</Link> / {topic.name}
       </p>
@@ -43,6 +60,19 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         and model assumptions, and every guide works through examples step by step.
       </p>
 
+      {topPicks.length > 0 && (
+        <section style={{ marginTop: 36 }}>
+          <h2>Start with these three</h2>
+          <ul>
+            {topPicks.map((pick) => (
+              <li key={pick.slug}>
+                <Link href={`/calculators/${pick.slug}`}>{pick.calc.name} calculator</Link> — {pick.reason}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section style={{ marginTop: 36 }}>
         <h2>{topic.name} calculators</h2>
         <div className="tool-grid">
@@ -50,7 +80,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             <Link className="tool-card" href={`/calculators/${c.slug}`} key={c.slug}>
               <small>{c.category}</small>
               <h2>{c.name} calculator</h2>
-              <p>{c.description}</p>
+              <p>{calculatorDescription(c, calculatorContent[c.slug])}</p>
               <span>Open tool →</span>
             </Link>
           ))}

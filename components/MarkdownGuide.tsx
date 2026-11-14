@@ -1,7 +1,7 @@
 import { marked } from 'marked';
-import { demoteH1 } from '@/lib/seo';
+import { demoteH1, addHeadingIds } from '@/lib/seo';
 
 export function MarkdownGuide({ content }: { content: string }) {
-  const html = demoteH1(marked.parse(content) as string);
+  const html = addHeadingIds(demoteH1(marked.parse(content) as string));
   return <article className="prose" dangerouslySetInnerHTML={{ __html: html }} />;
 }

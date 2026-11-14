@@ -16,15 +16,29 @@ import type { Simulation } from './simulations';
 export const SITE_NAME = 'Physics Fundamentals';
 export const BRAND_SUFFIX = ' | Physics Fundamentals'; // 23 chars
 export const PUBLISHED_DATE = '2026-11-13';
+/** Date the enhancement round changed calculator/guide/hub/home pages. */
+export const UPDATED_DATE = '2026-11-14';
+export const UPDATED_LABEL = '14 November 2026';
+/** Live production domain — the fallback base for canonical / share / OG URLs
+ *  when NEXT_PUBLIC_SITE_URL is not set (the live deploy sets no env vars). */
+export const LIVE_SITE_URL = 'https://physics-fundamentals-phi.vercel.app';
 
 export function siteUrl(): string | undefined {
   const base = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
   return base || undefined;
 }
 
+/** Canonical base: the configured site URL, else the live production domain. */
+export function siteBase(): string {
+  return siteUrl() ?? LIVE_SITE_URL;
+}
+
+export function canonicalUrl(path: string): string {
+  return `${siteBase()}${path}`;
+}
+
 export function absoluteUrl(path: string): string {
-  const base = siteUrl();
-  return base ? `${base}${path}` : path;
+  return `${siteBase()}${path}`;
 }
 
 /** Fit a primary title into <=60 chars, keeping the brand suffix when it fits. */
@@ -82,7 +96,7 @@ export function pageMetadata(opts: { title: string; description: string; path: s
     title,
     description,
     robots: { index: true, follow: true },
-    alternates: siteUrl() ? { canonical: url } : undefined,
+    alternates: { canonical: url },
     openGraph: {
       type: 'website',
       siteName: SITE_NAME,
@@ -265,3 +279,134 @@ export const LIST_META: Record<string, { title: string; description: string }> =
       'Browse physics by topic: kinematics, forces, energy, momentum, gravitation, waves, electricity and thermodynamics — calculators, guides and simulations.',
   },
 };
+
+// ---- Enhancement round: TOC, HowTo, reading time, key facts ----
+
+export function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+export type GuideHeading = { id: string; text: string; level: 2 | 3 };
+
+/** H2/H3 headings of a guide's markdown, in order (the "# Title" H1 is skipped). */
+export function extractGuideHeadings(markdown: string): GuideHeading[] {
+  const headings: GuideHeading[] = [];
+  const seen = new Map<string, number>();
+  for (const line of markdown.split('\n')) {
+    const m = /^(#{2,3})\s+(.+?)\s*$/.exec(line);
+    if (!m) continue;
+    const level = m[1].length === 2 ? 2 : 3;
+    const text = m[2].replace(/[*`_]/g, '').trim();
+    if (!text) continue;
+    const base = slugifyHeading(text);
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    headings.push({ id: n > 1 ? `${base}-${n}` : base, text, level });
+  }
+  return headings;
+}
+
+/** Inject id attributes into rendered h2/h3 tags, matching extractGuideHeadings. */
+export function addHeadingIds(html: string): string {
+  const seen = new Map<string, number>();
+  return html.replace(/<(h[23])([^>]*)>(.*?)<\/\1>/g, (_match, tag, attrs, inner) => {
+    const text = inner.replace(/<[^>]+>/g, '').replace(/[*`_]/g, '').trim();
+    const base = slugifyHeading(text);
+    if (!base) return `<${tag}${attrs}>${inner}</${tag}>`;
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    const id = n > 1 ? `${base}-${n}` : base;
+    return `<${tag}${attrs} id="${id}">${inner}</${tag}>`;
+  });
+}
+
+/** First sentence of a text (markdown stripped), for short answers. */
+export function firstSentence(text: string): string {
+  const clean = text.replace(/[#*`_]/g, '').replace(/\s+/g, ' ').trim();
+  const m = /^(.+?[.!?])(\s|$)/.exec(clean);
+  return (m ? m[1] : clean).trim();
+}
+
+/** Reading time in whole minutes at 200 words per minute, minimum 1. */
+export function guideReadingTimeMinutes(markdown: string): number {
+  const words = markdown.replace(/[#*`_]/g, '').split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+export type GuideHowTo = { name: string; steps: string[] };
+
+/**
+ * HowTo steps for a guide, taken from its own "Worked example" section:
+ * each paragraph of that section becomes one step, markdown stripped.
+ * Returns null when there is no usable worked-example section.
+ */
+export function extractGuideHowTo(markdown: string, guideTitle: string): GuideHowTo | null {
+  const idx = markdown.indexOf('## Worked example');
+  if (idx < 0) return null;
+  const rest = markdown.slice(idx);
+  const next = rest.indexOf('\n## ', 1);
+  const section = next >= 0 ? rest.slice(0, next) : rest;
+  const body = section.replace(/^## Worked example\s*/, '');
+  const steps = body
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/[#*`_]/g, '').replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length > 20);
+  if (steps.length < 2) return null;
+  return { name: `${guideTitle} — worked example`, steps };
+}
+
+/** Split a guide's markdown into its top-level (##) sections. */
+export function extractGuideSections(markdown: string): { heading: string; body: string }[] {
+  const sections: { heading: string; body: string }[] = [];
+  const parts = markdown.split(/^## /m);
+  for (const part of parts.slice(1)) {
+    const nl = part.indexOf('\n');
+    if (nl < 0) continue;
+    sections.push({ heading: part.slice(0, nl).trim(), body: part.slice(nl + 1) });
+  }
+  return sections;
+}
+
+export type KeyFact = { label: string; text: string };
+
+/**
+ * "Key facts" bullets for a calculator page, built only from that page's own
+ * data: its formula and unit (spec), the result step of its worked example,
+ * and a common mistake taken from its own FAQs (a "why / too low / wrong"
+ * question) or, failing that, its conversion note / model note.
+ */
+export function calculatorKeyFacts(
+  spec: { formula: string; unit: string; note: string },
+  content?: {
+    workedExample?: { steps: string[] };
+    faqs?: { q: string; a: string }[];
+    conversionNote?: string;
+  },
+): KeyFact[] {
+  const facts: KeyFact[] = [
+    { label: 'Formula', text: spec.formula },
+    { label: 'Answer in', text: spec.unit },
+  ];
+  const steps = content?.workedExample?.steps ?? [];
+  if (steps.length > 0) {
+    facts.push({ label: 'Worked example', text: steps[steps.length - 1] });
+  }
+  const mistakeFaq = content?.faqs?.find((f) =>
+    /why|wrong|too (low|high|big|small)|mistake|common/i.test(f.q),
+  );
+  if (mistakeFaq) {
+    facts.push({
+      label: 'Common mistake',
+      text: `${mistakeFaq.q} ${firstSentence(mistakeFaq.a)}`,
+    });
+  } else if (content?.conversionNote) {
+    facts.push({ label: 'Watch out', text: content.conversionNote });
+  } else {
+    facts.push({ label: 'Model note', text: firstSentence(spec.note) });
+  }
+  return facts;
+}

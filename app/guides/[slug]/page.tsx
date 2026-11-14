@@ -2,8 +2,22 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { guides } from '@/lib/guides';
 import { MarkdownGuide } from '@/components/MarkdownGuide';
+import ShareButtons from '@/components/ShareButtons';
 import { topicForGuide, calculatorsForTopic, guidesForTopic } from '@/lib/topics';
-import { guideTitle, guideDescription, breadcrumbJsonLd, pageMetadata, PUBLISHED_DATE, extractGuideFaqs } from '@/lib/seo';
+import {
+  guideTitle,
+  guideDescription,
+  breadcrumbJsonLd,
+  canonicalUrl,
+  pageMetadata,
+  PUBLISHED_DATE,
+  UPDATED_DATE,
+  UPDATED_LABEL,
+  extractGuideFaqs,
+  extractGuideHeadings,
+  extractGuideHowTo,
+  guideReadingTimeMinutes,
+} from '@/lib/seo';
 
 export function generateStaticParams() {
   return guides.map((g) => ({ slug: g.slug }));
@@ -53,15 +67,34 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     author: { '@type': 'Organization', name: 'Physics Fundamentals' },
     publisher: { '@type': 'Organization', name: 'Physics Fundamentals' },
     datePublished: PUBLISHED_DATE,
-    dateModified: PUBLISHED_DATE,
+    dateModified: UPDATED_DATE,
     inLanguage: 'en',
   };
+  const howTo = extractGuideHowTo(g.content, g.title);
+  const howToSchema = howTo
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'HowTo',
+        name: howTo.name,
+        description,
+        step: howTo.steps.map((text, i) => ({
+          '@type': 'HowToStep',
+          position: i + 1,
+          text,
+        })),
+      }
+    : null;
+  const headings = extractGuideHeadings(g.content).filter((h) => h.level === 2);
+  const readingMinutes = guideReadingTimeMinutes(g.content);
   return (
     <main className="container page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       {faqSchema && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
+      {howToSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />
       )}
       <p className="breadcrumb">
         <Link href="/">Home</Link>
@@ -73,7 +106,24 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <p className="eyebrow">{g.category} GUIDE</p>
       <h1>{g.title}</h1>
       <p className="lead">{g.description}</p>
+      <p className="page-meta">
+        Last updated: {UPDATED_LABEL} · {readingMinutes} min read
+      </p>
+      <ShareButtons url={canonicalUrl(`/guides/${slug}`)} title={guideTitle(g)} />
+      {headings.length > 0 && (
+        <nav className="toc" aria-label="Table of contents">
+          <h2>On this page</h2>
+          <ul>
+            {headings.map((h) => (
+              <li key={h.id}>
+                <a href={`#${h.id}`}>{h.text}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
       <MarkdownGuide content={g.content} />
+      <ShareButtons url={canonicalUrl(`/guides/${slug}`)} title={guideTitle(g)} />
       <section className="prose">
         <h2>Related pages</h2>
         <ul>

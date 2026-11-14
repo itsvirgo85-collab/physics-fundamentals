@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { calculators } from '@/lib/calculators';
+import { calculatorContent } from '@/lib/calculator-content';
 import { converters } from '@/lib/converters';
 import { simulations } from '@/lib/simulations';
 import { guides } from '@/lib/guides';
 import { topics } from '@/lib/topics';
-import { LIST_META, pageMetadata } from '@/lib/seo';
+import { LIST_META, canonicalUrl, calculatorDescription, pageMetadata } from '@/lib/seo';
 import SuvatTool from '@/components/SuvatTool';
+import ShareButtons from '@/components/ShareButtons';
 
 export const metadata = pageMetadata({
   title: LIST_META.home.title,
@@ -157,7 +159,7 @@ export default function Home() {
               <Link className="tool-card" href={`/calculators/${c.slug}`} key={c.slug}>
                 <small>{c.category}</small>
                 <h2>{c.name} calculator</h2>
-                <p>{c.description}</p>
+                <p>{calculatorDescription(c, calculatorContent[c.slug])}</p>
                 <span>Open tool →</span>
               </Link>
             ))}
@@ -251,6 +253,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <ShareButtons url={canonicalUrl('/')} title={LIST_META.home.title} />
 
       <section className="container cta">
         <h2>Physics is easier when you can experiment.</h2>

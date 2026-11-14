@@ -213,3 +213,53 @@ export function convertersForTopic(slug: string) {
 export function simulationsForTopic(slug: string) {
   return simulations.filter((s) => simulationHubMap[s.slug] === slug);
 }
+
+/**
+ * The three calculators to start with in each hub, with a one-line reason
+ * each. Picks follow the live keyword research (top-12 launch list first):
+ * the tools readers ask for most, in each topic.
+ */
+export type HubTopPick = { slug: string; reason: string };
+
+export const hubTopPicks: Record<string, HubTopPick[]> = {
+  kinematics: [
+    { slug: 'suvat', reason: 'Solves any constant-acceleration question from any three values.' },
+    { slug: 'projectile-motion', reason: 'Range, height and flight time, with a trajectory diagram.' },
+    { slug: 'free-fall-time', reason: 'Height, time and impact speed for a falling object.' },
+  ],
+  'forces-dynamics': [
+    { slug: 'pressure', reason: 'Force over area, with the cm²-to-m² trap called out.' },
+    { slug: 'newtons-second-law', reason: 'The F = ma calculation behind almost every forces question.' },
+    { slug: 'friction-force', reason: 'Static and kinetic friction from coefficient and normal force.' },
+  ],
+  'work-energy-power': [
+    { slug: 'kinetic-energy', reason: 'Energy of motion, with GCSE speed-doubling examples.' },
+    { slug: 'gravitational-potential-energy', reason: 'Stored energy from mass and height, mgh.' },
+    { slug: 'power', reason: 'Work done over time, in watts.' },
+  ],
+  'momentum-rotation': [
+    { slug: 'collision-momentum', reason: 'Momentum before and after a collision, elastic or inelastic.' },
+    { slug: 'momentum', reason: 'The p = mv calculation every collision question starts from.' },
+    { slug: 'torque', reason: 'Turning effect from force, distance and angle.' },
+  ],
+  'gravitation-circular-motion': [
+    { slug: 'gravitational-force', reason: 'The pull between two masses, F = Gm₁m₂/r².' },
+    { slug: 'escape-velocity', reason: 'The speed needed to leave a planet for good.' },
+    { slug: 'centripetal-acceleration', reason: 'The inward acceleration of anything moving in a circle.' },
+  ],
+  'waves-oscillations': [
+    { slug: 'wave-speed', reason: 'The v = fλ calculation behind every waves question.' },
+    { slug: 'frequency', reason: 'How many waves pass per second, from speed and wavelength.' },
+    { slug: 'pendulum-period', reason: 'The swing time of a pendulum from its length.' },
+  ],
+  'electricity-magnetism': [
+    { slug: 'ohms-law', reason: 'Voltage, current and resistance from V = IR.' },
+    { slug: 'electric-power', reason: 'Electrical power in watts, from voltage and current.' },
+    { slug: 'series-and-parallel-resistance', reason: 'The combined resistance of a circuit, either way round.' },
+  ],
+  'thermodynamics-optics': [
+    { slug: 'specific-heat', reason: 'Energy to heat a mass, Q = mcΔT, plus latent heat.' },
+    { slug: 'ideal-gas-law', reason: 'Pressure, volume and temperature from PV = nRT.' },
+    { slug: 'snells-law', reason: 'How much a ray bends at a boundary, and when it reflects instead.' },
+  ],
+};
