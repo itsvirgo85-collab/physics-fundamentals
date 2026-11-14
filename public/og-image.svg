@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Physics Fundamentals — free physics calculators, guides and simulations">
+  <rect width="1200" height="630" fill="#14233B"/>
+  <rect width="1200" height="630" fill="#1D4ED8" opacity="0.16"/>
+  <circle cx="1020" cy="110" r="150" fill="none" stroke="#F59E0B" stroke-width="6" opacity="0.9"/>
+  <circle cx="1020" cy="110" r="95" fill="none" stroke="#0E7490" stroke-width="6" opacity="0.9"/>
+  <text x="1020" y="140" font-family="system-ui, sans-serif" font-size="72" font-weight="700" fill="#FFFFFF" text-anchor="middle">&#934;</text>
+  <rect x="80" y="96" width="72" height="10" fill="#F59E0B"/>
+  <text x="80" y="190" font-family="system-ui, sans-serif" font-size="76" font-weight="800" fill="#FFFFFF">Physics Fundamentals</text>
+  <text x="80" y="252" font-family="system-ui, sans-serif" font-size="34" fill="#B8C8DF">Free physics calculators, guides &amp; simulations</text>
+  <text x="80" y="300" font-family="system-ui, sans-serif" font-size="26" fill="#B8C8DF">Hand-checked equations · SI units · Step-by-step working</text>
+  <text x="80" y="400" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Kinematics</text>
+  <text x="80" y="448" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Forces &amp; Dynamics</text>
+  <text x="80" y="496" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Work, Energy &amp; Power</text>
+  <text x="80" y="544" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Momentum &amp; Rotation</text>
+  <text x="640" y="400" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Gravitation &amp; Circular Motion</text>
+  <text x="640" y="448" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Waves &amp; Oscillations</text>
+  <text x="640" y="496" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Electricity &amp; Magnetism</text>
+  <text x="640" y="544" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Thermodynamics &amp; Optics</text>
+</svg>

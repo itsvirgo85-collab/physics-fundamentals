@@ -1,0 +1,8 @@
+'use client';
+import {useMemo,useState} from 'react';
+import {convertValue, type Converter} from '@/lib/converters';
+export default function ConverterTool({converter}:{converter:Converter}){
+ const [value,setValue]=useState('1'); const [from,setFrom]=useState(converter.units[0].symbol); const [to,setTo]=useState(converter.units[1]?.symbol??converter.units[0].symbol);
+ const result=useMemo(()=>{try{return {value:convertValue(Number(value),from,to,converter.slug),error:''}}catch(e){return {value:NaN,error:e instanceof Error?e.message:'Unable to convert'}}},[value,from,to,converter]);
+ return <div className="card"><h2>Convert {converter.name.toLowerCase()}</h2><div className="field-grid"><label className="field">Value<input type="number" step="any" value={value} onChange={e=>setValue(e.target.value)}/></label><label className="field">From<select value={from} onChange={e=>setFrom(e.target.value)}>{converter.units.map(u=><option key={u.symbol} value={u.symbol}>{u.name} ({u.symbol})</option>)}</select></label><label className="field">To<select value={to} onChange={e=>setTo(e.target.value)}>{converter.units.map(u=><option key={u.symbol} value={u.symbol}>{u.name} ({u.symbol})</option>)}</select></label></div><div className="result" aria-live="polite"><small>CONVERTED VALUE</small><h2>{result.error||(!Number.isFinite(result.value)?'Enter a valid value':`${Number(result.value.toPrecision(10)).toLocaleString()} ${to}`)}</h2><p>{value||'0'} {from} = {Number.isFinite(result.value)?Number(result.value.toPrecision(10)).toLocaleString():'—'} {to}</p></div><p className="muted">Conversions use defined SI factors. Temperature conversions account for offsets and reject values below absolute zero.</p></div>
+}

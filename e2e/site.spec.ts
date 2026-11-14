@@ -1,0 +1,6 @@
+import {test,expect} from '@playwright/test';
+test('homepage exposes the main learning tools',async({page})=>{await page.goto('/');await expect(page.getByRole('heading',{name:/understand the science/i})).toBeVisible();await expect(page.getByRole('link',{name:/explore calculators/i})).toBeVisible();});
+test('velocity calculator calculates a result',async({page})=>{await page.goto('/calculators/velocity');await page.getByLabel('Displacement (m)').fill('100');await page.getByLabel('Time (s)').fill('20');await page.getByRole('button',{name:'Calculate'}).click();await expect(page.getByText('5 m/s')).toBeVisible();});
+test('length converter converts one mile to kilometres',async({page})=>{await page.goto('/converters/length');await page.getByLabel('Value').fill('1');await page.getByLabel('From').selectOption('mi');await page.getByLabel('To').selectOption('km');await expect(page.getByText(/1\.609344 km/)).toBeVisible();});
+test('simulation route renders interactive controls',async({page})=>{await page.goto('/simulations/projectile-lab');await expect(page.getByText(/LIVE MODEL OUTPUT/)).toBeVisible();await expect(page.getByRole('slider')).toHaveCount(3);});
+test('guide page renders a worked example section',async({page})=>{await page.goto('/guides/newtons-laws');await expect(page.getByRole('heading',{name:'Worked example'})).toBeVisible();});

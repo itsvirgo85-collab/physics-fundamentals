@@ -1,0 +1,267 @@
+import type { Metadata } from 'next';
+import type { Calculator } from './calculators';
+import type { CalculatorContent } from './calculator-content';
+import type { Guide } from './guides';
+import type { Converter } from './converters';
+import type { Simulation } from './simulations';
+
+/**
+ * Shared SEO helpers. Every page template AND the SEO audit test import
+ * these functions, so the "effective" title / description the audit checks
+ * is exactly what the templates render. Nothing here edits source data:
+ * descriptions that are too long are truncated in code, and ones that are
+ * too short are padded in code with a standard suffix.
+ */
+
+export const SITE_NAME = 'Physics Fundamentals';
+export const BRAND_SUFFIX = ' | Physics Fundamentals'; // 23 chars
+export const PUBLISHED_DATE = '2026-11-13';
+
+export function siteUrl(): string | undefined {
+  const base = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
+  return base || undefined;
+}
+
+export function absoluteUrl(path: string): string {
+  const base = siteUrl();
+  return base ? `${base}${path}` : path;
+}
+
+/** Fit a primary title into <=60 chars, keeping the brand suffix when it fits. */
+export function fitTitle(primary: string): string {
+  const p = primary.trim().replace(/\s+/g, ' ');
+  const withBrand = `${p}${BRAND_SUFFIX}`;
+  if (withBrand.length <= 60) return withBrand;
+  if (p.length <= 60) return p;
+  const cut = p.slice(0, 57);
+  const idx = cut.lastIndexOf(' ');
+  return `${(idx >= 40 ? cut.slice(0, idx) : cut).trimEnd()}…`;
+}
+
+const PAD_SENTENCES = [
+  'Free to use, with SI units, worked examples and step-by-step working shown.',
+  'No sign-up needed — check the equation, inputs and assumptions before trusting the result.',
+];
+
+function truncateDescription(s: string): string {
+  const cut = s.slice(0, 156);
+  const idx = cut.lastIndexOf(' ');
+  const body = idx >= 149 ? cut.slice(0, idx) : cut;
+  return `${body.trimEnd()}…`;
+}
+
+/**
+ * Effective meta description: 150-160 chars.
+ * - already in range: returned as-is
+ * - too long: truncated at a word boundary with an ellipsis
+ * - too short: standard suffix sentence(s) appended in code, then truncated if needed
+ */
+export function fitDescription(base: string): string {
+  const b = base.trim().replace(/\s+/g, ' ');
+  if (b.length >= 150 && b.length <= 160) return b;
+  if (b.length > 160) return truncateDescription(b);
+  let out = b;
+  for (const pad of PAD_SENTENCES) {
+    if (out.length >= 150) break;
+    out = `${out.replace(/[.?!…]$/, '')}. ${pad}`;
+  }
+  if (out.length > 160) return truncateDescription(out);
+  if (out.length < 150) {
+    out = `${out} All tools are free and show their working.`;
+    if (out.length > 160) return truncateDescription(out);
+  }
+  return out;
+}
+
+/** Full metadata object for an indexable page: title, description, canonical, OG + Twitter. */
+export function pageMetadata(opts: { title: string; description: string; path: string }): Metadata {
+  const { title, description, path } = opts;
+  const url = absoluteUrl(path);
+  const ogImage = absoluteUrl('/og-image.svg');
+  return {
+    title,
+    description,
+    robots: { index: true, follow: true },
+    alternates: siteUrl() ? { canonical: url } : undefined,
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      title,
+      description,
+      url,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: SITE_NAME }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
+
+/** BreadcrumbList JSON-LD. Items after Home may omit url only for the current page. */
+export function breadcrumbJsonLd(items: { name: string; url?: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      ...(item.url ? { item: absoluteUrl(item.url) } : {}),
+    })),
+  };
+}
+
+// ---- Effective titles / descriptions per page type (templates + audit share these) ----
+
+export type CalculatorContentLike = CalculatorContent & { title?: string };
+
+export function calculatorTitle(c: Calculator, content?: CalculatorContentLike): string {
+  return fitTitle(content?.title ?? `${c.name} Calculator`);
+}
+
+export function calculatorDescription(c: Calculator, content?: CalculatorContentLike): string {
+  return fitDescription(content?.description ?? c.description);
+}
+
+export function guideTitle(g: Guide): string {
+  return fitTitle(g.title);
+}
+
+export function guideDescription(g: Guide): string {
+  return fitDescription(g.description);
+}
+
+export function converterTitle(c: Converter): string {
+  return fitTitle(`${c.name} Converter`);
+}
+
+export function converterDescription(c: Converter): string {
+  return fitDescription(c.description);
+}
+
+export function simulationTitle(s: Simulation): string {
+  return fitTitle(`${s.title} Simulation`);
+}
+
+export function simulationDescription(s: Simulation): string {
+  return fitDescription(s.description);
+}
+
+/** Optional `whenToUse` field converters / simulations may gain; absent in current data. */
+export function whenToUseOf(item: Converter | Simulation): string | undefined {
+  return (item as Converter & Simulation & { whenToUse?: string }).whenToUse;
+}
+
+/**
+ * 40-60 word direct-answer paragraph for a calculator page. Built from the
+ * calculator's own spec (input labels, unit, note) so it is unique per page.
+ * The equation itself is shown directly above this paragraph, so it is
+ * referenced rather than repeated (SUVAT's formula alone is 15 tokens).
+ */
+export function calculatorDirectAnswer(
+  calc: Calculator,
+  spec: { labels: string[]; unit: string; note: string },
+): string {
+  const inputs = spec.labels.map((l) => l.replace(/\s*\(.*\)$/, '').toLowerCase());
+  const joined =
+    inputs.length <= 1
+      ? inputs[0] ?? ''
+      : `${inputs.slice(0, -1).join(', ')} and ${inputs[inputs.length - 1]}`;
+  const firstSentence = (spec.note.split(/(?<=[.?!])\s/)[0] ?? '').trim();
+  const note =
+    firstSentence && firstSentence.split(/\s+/).length <= 14
+      ? ` ${firstSentence}`
+      : ' The model assumes idealised conditions, so treat the result as an estimate.';
+  const build = (middle: string) =>
+    `To calculate ${calc.name.toLowerCase()}, enter ${joined} in SI units and substitute ` +
+    `them into the equation shown above. The answer comes out in ${spec.unit}.${middle} ` +
+    `Always check the units and the model assumptions before using the result.`;
+  let text = build(note);
+  // Keep every direct answer in the 40-60 word band whatever the spec holds.
+  if (wordCount(text) < 40) text += ' Keep the units attached to the result.';
+  if (wordCount(text) > 60) text = build(' The model assumes idealised conditions.');
+  return text;
+}
+
+export function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Guide markdown starts with a "# Title" H1 that duplicates the page H1.
+ * Demote rendered H1s to H2 so every guide page has exactly one H1.
+ */
+export function demoteH1(html: string): string {
+  return html.replace(/<h1(\s[^>]*)?>/g, '<h2$1>').replace(/<\/h1>/g, '</h2>');
+}
+
+export type GuideFaq = { q: string; a: string };
+
+/** Extract the FAQ questions/answers from a guide's markdown FAQ section. */
+export function extractGuideFaqs(markdown: string): GuideFaq[] {
+  const idx = markdown.indexOf('## Frequently asked questions');
+  if (idx < 0) return [];
+  const section = markdown.slice(idx);
+  const parts = section.split(/^### /m).slice(1);
+  const faqs: GuideFaq[] = [];
+  for (const part of parts) {
+    const lines = part.split('\n');
+    const q = (lines[0] ?? '').trim();
+    const a = lines
+      .slice(1)
+      .join(' ')
+      .replace(/[#*`_]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (q && a) faqs.push({ q, a });
+  }
+  return faqs;
+}
+
+// ---- Shared metadata copy for list pages + homepage (templates + audit share these) ----
+
+export const LIST_META: Record<string, { title: string; description: string }> = {
+  home: {
+    title: 'Physics Fundamentals | Free Physics Calculators',
+    description:
+      'Free physics calculators, unit converters, interactive simulations, formula library and learning guides — checked equations, SI units and step-by-step working.',
+  },
+  calculators: {
+    title: fitTitle('Physics Calculators'),
+    description:
+      'Browse 68 free physics calculators for motion, forces, energy, momentum, waves, electricity and more — every tool shows its equation, SI units and assumptions.',
+  },
+  guides: {
+    title: fitTitle('Physics Guides'),
+    description:
+      'Read clear physics guides on motion, forces, energy, waves, electricity and heat — each with equations, worked examples, common mistakes and a FAQ section.',
+  },
+  converters: {
+    title: fitTitle('Physics Unit Converters'),
+    description:
+      'Convert physics units free: length, mass, time, speed, force, energy, power, pressure, area, volume, density, frequency, angle and temperature, with factors.',
+  },
+  simulations: {
+    title: fitTitle('Interactive Physics Simulations'),
+    description:
+      'Explore interactive physics simulations for motion, waves, circuits, optics and thermodynamics — change parameters and watch the quantities respond instantly.',
+  },
+  formulas: {
+    title: fitTitle('Physics Formula Library'),
+    description:
+      'A free physics formula library with 196 equations across mechanics, waves, electricity, thermodynamics and optics — each with its equation, units and topic.',
+  },
+  practice: {
+    title: fitTitle('Physics Practice Questions'),
+    description:
+      'Test yourself with free physics practice questions on motion, forces, energy, waves, electricity and more — check your answers and read each explanation.',
+  },
+  topics: {
+    title: fitTitle('Physics Topics'),
+    description:
+      'Browse physics by topic: kinematics, forces, energy, momentum, gravitation, waves, electricity and thermodynamics — calculators, guides and simulations.',
+  },
+};
